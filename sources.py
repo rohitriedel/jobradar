@@ -138,5 +138,46 @@ def fetch_jsearch():
     return jobs
 
 
+# --------------------------------------------------------------------------- #
+# Sweden — JobTech / Platsbanken (open government API, no key)
+# --------------------------------------------------------------------------- #
+def fetch_jobtech_se():
+    from config import SEARCH_TERMS
+    jobs, seen = [], set()
+    with httpx.Client(timeout=TIMEOUT) as client:
+        for term in SEARCH_TERMS:
+            try:
+                r = _get_with_retry(
+                    client, "https://jobsearch.api.jobtechdev.se/search",
+                    {"q": term, "limit": 50}, f"jobtech:{term}")
+                hits = r.json().get("hits", []) or []
+            except Exception as e:
+                print(f"  [jobtech:{term}] error: {e}")
+                continue
+            for h in hits:
+                jid = f"jobtech:{h.get('id')}"
+                if jid in seen:
+                    continue
+                seen.add(jid)
+                addr = h.get("workplace_address") or {}
+                desc = h.get("description") or {}
+                jobs.append({
+                    "id": jid,
+                    "source": "Platsbanken (SE)",
+                    "title": h.get("headline", ""),
+                    "company": (h.get("employer") or {}).get("name", ""),
+                    "location": ", ".join(
+                        x for x in [addr.get("municipality"), "Sweden"] if x),
+                    "country": "SE",
+                    "url": h.get("webpage_url")
+                           or (h.get("application_details") or {}).get("url", ""),
+                    "posted": h.get("publication_date", ""),
+                    "description": desc.get("text", "") if isinstance(desc, dict) else "",
+                })
+            time.sleep(0.3)
+    print(f"  [jobtech:SE] {len(jobs)} raw")
+    return jobs
+
+
 def fetch_all():
-    return fetch_adzuna() + fetch_jsearch()
+    return fetch_adzuna() + fetch_jsearch() + fetch_jobtech_se()
