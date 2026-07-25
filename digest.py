@@ -80,6 +80,12 @@ def render_page(jobs):
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JobRadar — Scrum Master / Agile / Delivery roles</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a7f3f">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JobRadar">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {{ --bg:#fff; --fg:#1a1a1a; --muted:#666; --card:#fff; --border:#e3e3e3;
            --chip:#f0f2f5; --chipfg:#444; --accent:#0a7f3f; --link:#0366d6; }}
@@ -164,6 +170,9 @@ def render_page(jobs):
     state.q = e.target.value.trim().toLowerCase(); apply();
   }});
   apply();
+  if ('serviceWorker' in navigator) {{
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{{}}));
+  }}
 </script>
 </body></html>"""
 
