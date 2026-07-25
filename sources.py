@@ -111,9 +111,10 @@ def fetch_jsearch():
             }
             try:
                 r = _get_with_retry(
-                    client, "https://jsearch.p.rapidapi.com/search", params,
+                    client, "https://jsearch.p.rapidapi.com/search-v2", params,
                     f"jsearch:{country}")
-                data = r.json().get("data", []) or []
+                # search-v2 nests results under data.jobs
+                data = (r.json().get("data") or {}).get("jobs", []) or []
             except Exception as e:
                 print(f"  [jsearch:{country}] error: {e}")
                 continue
@@ -129,7 +130,8 @@ def fetch_jsearch():
                     ),
                     "country": (item.get("job_country") or country).upper(),
                     "url": item.get("job_apply_link", ""),
-                    "posted": item.get("job_posted_at_datetime_utc", ""),
+                    "posted": item.get("job_posted_at_datetime_utc")
+                              or item.get("job_posted_at", ""),
                     "description": item.get("job_description", ""),
                 })
             print(f"  [jsearch:{country}] {len(data)} raw")

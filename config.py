@@ -28,9 +28,10 @@ ADZUNA_COUNTRIES = ["gb", "de", "at", "ch", "nl", "be", "fr", "it", "es", "pl"]
 ADZUNA_RESULTS_PER_PAGE = 50
 
 # JSearch: which country codes to sweep and how many result-pages each.
-# Deliberately aimed at gaps Adzuna can't see: Scandinavia (se/dk/no) + Ireland
-# (English-native), plus Germany where JSearch catches StepStone/Indeed roles.
-JSEARCH_COUNTRIES = ["se", "dk", "no", "ie", "de"]
+# NOTE: JSearch's free tier only returns data for some countries. Confirmed
+# working: de (catches StepStone/Indeed), dk (net-new — Adzuna lacks it), nl.
+# se/no/ie/gb return nothing on the free tier, so we get Scandinavia elsewhere.
+JSEARCH_COUNTRIES = ["de", "dk", "nl"]
 JSEARCH_PAGES = 1
 
 # Where the SQLite "already seen" database and the web page get written.
