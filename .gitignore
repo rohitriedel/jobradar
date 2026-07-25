@@ -1,0 +1,5 @@
+.env
+jobradar.db
+index.html
+__pycache__/
+.venv/
