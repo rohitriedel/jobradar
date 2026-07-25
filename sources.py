@@ -11,6 +11,7 @@ from config import (
     SEARCH_TERMS,
     ADZUNA_COUNTRIES,
     ADZUNA_RESULTS_PER_PAGE,
+    ADZUNA_MAX_PAGES,
     JSEARCH_COUNTRIES,
     JSEARCH_PAGES,
 )
@@ -53,35 +54,40 @@ def fetch_adzuna():
     jobs = []
     with httpx.Client(timeout=TIMEOUT) as client:
         for country in ADZUNA_COUNTRIES:
-            url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"
-            params = {
-                "app_id": app_id,
-                "app_key": app_key,
-                "results_per_page": ADZUNA_RESULTS_PER_PAGE,
-                # what_or = match ANY of these words/phrases
-                "what_or": " ".join(SEARCH_TERMS),
-                "content-type": "application/json",
-            }
-            try:
-                r = _get_with_retry(client, url, params, f"adzuna:{country}")
-                results = r.json().get("results", [])
-            except Exception as e:
-                print(f"  [adzuna:{country}] error: {e}")
-                continue
-            time.sleep(0.5)  # be polite between countries
-            for item in results:
-                jobs.append({
-                    "id": f"adzuna:{item.get('id')}",
-                    "source": "Adzuna",
-                    "title": item.get("title", ""),
-                    "company": (item.get("company") or {}).get("display_name", ""),
-                    "location": (item.get("location") or {}).get("display_name", ""),
-                    "country": country.upper(),
-                    "url": item.get("redirect_url", ""),
-                    "posted": item.get("created", ""),
-                    "description": item.get("description", ""),
-                })
-            print(f"  [adzuna:{country}] {len(results)} raw")
+            got = 0
+            for page in range(1, ADZUNA_MAX_PAGES + 1):
+                url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/{page}"
+                params = {
+                    "app_id": app_id,
+                    "app_key": app_key,
+                    "results_per_page": ADZUNA_RESULTS_PER_PAGE,
+                    # what_or = match ANY of these words/phrases
+                    "what_or": " ".join(SEARCH_TERMS),
+                    "content-type": "application/json",
+                }
+                try:
+                    r = _get_with_retry(client, url, params, f"adzuna:{country}:{page}")
+                    results = r.json().get("results", [])
+                except Exception as e:
+                    print(f"  [adzuna:{country}:{page}] error: {e}")
+                    break
+                time.sleep(0.5)  # be polite between pages/countries
+                for item in results:
+                    jobs.append({
+                        "id": f"adzuna:{item.get('id')}",
+                        "source": "Adzuna",
+                        "title": item.get("title", ""),
+                        "company": (item.get("company") or {}).get("display_name", ""),
+                        "location": (item.get("location") or {}).get("display_name", ""),
+                        "country": country.upper(),
+                        "url": item.get("redirect_url", ""),
+                        "posted": item.get("created", ""),
+                        "description": item.get("description", ""),
+                    })
+                got += len(results)
+                if len(results) < ADZUNA_RESULTS_PER_PAGE:
+                    break  # last page reached
+            print(f"  [adzuna:{country}] {got} raw")
     return jobs
 
 
@@ -98,7 +104,9 @@ def fetch_jsearch():
         "X-RapidAPI-Key": key,
         "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
     }
-    query = " OR ".join(f'"{t}"' for t in SEARCH_TERMS)
+    # Google-for-Jobs chokes on very long OR chains — keep this compact.
+    query = ('"scrum master" OR "agile coach" OR "delivery manager" '
+             'OR "release train engineer" OR "agile delivery manager"')
     jobs = []
     with httpx.Client(timeout=TIMEOUT, headers=headers) as client:
         for country in JSEARCH_COUNTRIES:
@@ -130,6 +138,7 @@ def fetch_jsearch():
                     ),
                     "country": (item.get("job_country") or country).upper(),
                     "url": item.get("job_apply_link", ""),
+                    "is_remote": item.get("job_is_remote"),
                     "posted": item.get("job_posted_at_datetime_utc")
                               or item.get("job_posted_at", ""),
                     "description": item.get("job_description", ""),
@@ -142,10 +151,10 @@ def fetch_jsearch():
 # Sweden — JobTech / Platsbanken (open government API, no key)
 # --------------------------------------------------------------------------- #
 def fetch_jobtech_se():
-    from config import SEARCH_TERMS
+    from config import GOV_SEARCH_TERMS
     jobs, seen = [], set()
     with httpx.Client(timeout=TIMEOUT) as client:
-        for term in SEARCH_TERMS:
+        for term in GOV_SEARCH_TERMS:
             try:
                 r = _get_with_retry(
                     client, "https://jobsearch.api.jobtechdev.se/search",
@@ -183,10 +192,10 @@ def fetch_jobtech_se():
 # Norway — NAV Arbeidsplassen search (open endpoint their own site uses, no key)
 # --------------------------------------------------------------------------- #
 def fetch_navno_no():
-    from config import SEARCH_TERMS
+    from config import GOV_SEARCH_TERMS
     jobs, seen = [], set()
     with httpx.Client(timeout=TIMEOUT, headers={"accept": "application/json"}) as client:
-        for term in SEARCH_TERMS:
+        for term in GOV_SEARCH_TERMS:
             try:
                 r = _get_with_retry(
                     client, "https://arbeidsplassen.nav.no/stillinger/api/search",
@@ -208,6 +217,7 @@ def fetch_navno_no():
                 sample = " ".join(str(x) for x in [
                     src.get("title"), props.get("jobtitle"),
                     props.get("keywords"), props.get("searchtags"),
+                    props.get("remote"),
                 ] if x)
                 jobs.append({
                     "id": f"navno:{uuid}",

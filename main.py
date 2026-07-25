@@ -42,15 +42,17 @@ def main():
     n_en = sum(1 for j in matched if j["language"] == "en")
     print(f"     {len(matched)} match — {n_en} English, {len(matched) - n_en} German")
 
-    print("3/4  Removing ones you've already seen…")
+    print("3/4  Storing + de-duplicating…")
     conn = store.connect(config.DB_PATH)
     new = store.filter_new(conn, matched)
-    print(f"     {len(new)} are new")
+    store.prune_old(conn, days=45)
+    all_jobs = store.get_all(conn)
+    print(f"     {len(new)} new this run · {len(all_jobs)} in the pool")
 
-    print("4/4  Building digest…")
-    path = digest.write_webpage(new)
+    print("4/4  Building page + email…")
+    path = digest.write_webpage(all_jobs)   # full filterable pool
     print(f"     web page → {path}")
-    digest.send_email(new)
+    digest.send_email(new)                  # email only the new ones
 
     print("Done.")
 

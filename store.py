@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     posted     TEXT,
     description TEXT,
     language   TEXT,
+    category   TEXT,
+    work_mode  TEXT,
     first_seen TEXT
 );
 """
@@ -26,6 +28,27 @@ def connect(db_path):
     conn.execute(SCHEMA)
     conn.commit()
     return conn
+
+
+FIELDS = ["id", "source", "title", "company", "location", "country", "url",
+          "posted", "description", "language", "category", "work_mode", "first_seen"]
+
+
+def prune_old(conn, days=45):
+    """Drop jobs first seen more than `days` ago so the page stays current."""
+    from datetime import timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    conn.execute("DELETE FROM jobs WHERE first_seen < ?", (cutoff,))
+    conn.commit()
+
+
+def get_all(conn):
+    """Return every stored job as a dict, English first, newest first."""
+    rows = conn.execute(
+        f"SELECT {', '.join(FIELDS)} FROM jobs "
+        "ORDER BY (language='en') DESC, first_seen DESC"
+    ).fetchall()
+    return [dict(zip(FIELDS, row)) for row in rows]
 
 
 def filter_new(conn, jobs):
@@ -39,12 +62,14 @@ def filter_new(conn, jobs):
             continue
         cur.execute(
             """INSERT INTO jobs
-               (id, source, title, company, location, country, url, posted, description, language, first_seen)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+               (id, source, title, company, location, country, url, posted,
+                description, language, category, work_mode, first_seen)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 j["id"], j["source"], j["title"], j["company"], j["location"],
                 j["country"], j["url"], j["posted"], j["description"],
-                j.get("language", ""), now,
+                j.get("language", ""), j.get("category", "Other"),
+                j.get("work_mode", "unknown"), now,
             ),
         )
         new.append(j)

@@ -1,36 +1,71 @@
 """All the knobs for JobRadar in one place. Edit here, not in the code."""
 
-# Job titles we care about. A posting is kept only if its title matches one of
-# these (case-insensitive substring). Add/remove freely.
-TITLE_KEYWORDS = [
-    "scrum master",
-    "agile coach",
-    "team coach",
-    "agile team coach",
-    "agile coach",
-    "agile master",
-    "iteration manager",
-    "agile team facilitator",
-    "delivery coach",
+# ---------------------------------------------------------------------------
+# DESIGNATIONS — the Scrum Master role fragmented in 2026. These are the title
+# families that do (broadly) the same work. Each job is bucketed into the first
+# category whose keyword its title contains. Order = priority when a title
+# could fit more than one bucket (most specific first).
+# ---------------------------------------------------------------------------
+DESIGNATION_CATEGORIES = {
+    "Release Train Engineer": [
+        "release train engineer", "solution train engineer", "train engineer",
+    ],
+    "Delivery Manager": [
+        "agile delivery manager", "delivery manager", "delivery lead",
+        "agile delivery lead", "delivery coach", "flow manager", "flow lead",
+    ],
+    "Agile Coach": [
+        "agile coach", "agility lead", "agile lead", "ways of working",
+        "enterprise coach", "transformation coach", "agile transformation",
+        "kanban coach",
+    ],
+    "Team Facilitator": [
+        "agile team facilitator", "team facilitator", "iteration manager",
+        "team coach",
+    ],
+    "Agile PM": [
+        "agile project manager", "agile programme manager", "agile program manager",
+    ],
+    "Scrum Master": [
+        "scrum master", "scrum-master", "agile master", "scrum coach",
+    ],
+}
+
+# Flattened keyword list — a title is kept if it contains ANY of these.
+TITLE_KEYWORDS = [kw for kws in DESIGNATION_CATEGORIES.values() for kw in kws]
+
+# ...but rejected if the title also contains one of these — kills non-tech
+# "delivery manager" noise (logistics, procurement, food, etc.) without
+# dropping real agile-delivery roles.
+EXCLUDE_KEYWORDS = [
+    "procurement", "logistics", "supply chain", "courier", "warehouse",
+    "food delivery", "transport", "fleet", "catering", "driver",
 ]
 
-# Search phrases we send to the job APIs (broader than the title filter above;
-# the title filter then trims the noise).
-SEARCH_TERMS = ["scrum master", "agile coach", "team coach"]
+# Broad phrases sent to the APIs. Adzuna ORs these; the title filter then trims.
+SEARCH_TERMS = [
+    "scrum master", "agile coach", "agile delivery manager", "delivery manager",
+    "delivery lead", "release train engineer", "iteration manager",
+    "agile team facilitator", "team coach", "agile master", "scrum coach",
+    "agile project manager", "agile program manager", "agile lead",
+    "ways of working",
+]
 
-# Languages to keep. Detected from the job title + description.
+# Smaller curated set for the free government APIs (looped one query each).
+GOV_SEARCH_TERMS = [
+    "scrum master", "agile coach", "agile delivery manager",
+    "release train engineer", "iteration manager", "team coach",
+]
+
+# Languages to keep, detected from title + description. English first on page.
 KEEP_LANGUAGES = {"en", "de"}
 
 # Adzuna country endpoints across Europe (their supported EU markets).
 ADZUNA_COUNTRIES = ["gb", "de", "at", "ch", "nl", "be", "fr", "it", "es", "pl"]
-
-# How many results per Adzuna page/query (max 50 on the free tier).
 ADZUNA_RESULTS_PER_PAGE = 50
+ADZUNA_MAX_PAGES = 3  # depth per country, so we don't miss jobs
 
-# JSearch: which country codes to sweep and how many result-pages each.
-# NOTE: JSearch's free tier only returns data for some countries. Confirmed
-# working: de (catches StepStone/Indeed), dk (net-new — Adzuna lacks it), nl.
-# se/no/ie/gb return nothing on the free tier, so we get Scandinavia elsewhere.
+# JSearch: only these return data on the free tier (se/no/ie/gb come back empty).
 JSEARCH_COUNTRIES = ["de", "dk", "nl"]
 JSEARCH_PAGES = 1
 
