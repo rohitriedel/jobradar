@@ -179,5 +179,54 @@ def fetch_jobtech_se():
     return jobs
 
 
+# --------------------------------------------------------------------------- #
+# Norway — NAV Arbeidsplassen search (open endpoint their own site uses, no key)
+# --------------------------------------------------------------------------- #
+def fetch_navno_no():
+    from config import SEARCH_TERMS
+    jobs, seen = [], set()
+    with httpx.Client(timeout=TIMEOUT, headers={"accept": "application/json"}) as client:
+        for term in SEARCH_TERMS:
+            try:
+                r = _get_with_retry(
+                    client, "https://arbeidsplassen.nav.no/stillinger/api/search",
+                    {"q": term, "size": 100}, f"navno:{term}")
+                hits = ((r.json().get("hits") or {}).get("hits")) or []
+            except Exception as e:
+                print(f"  [navno:{term}] error: {e}")
+                continue
+            for hit in hits:
+                src = hit.get("_source") or {}
+                uuid = src.get("uuid")
+                if not uuid or uuid in seen:
+                    continue
+                seen.add(uuid)
+                props = src.get("properties") or {}
+                loc = (src.get("locationList") or [{}])[0]
+                # The search hit has no ad body; build a text sample from the
+                # fields it does return, so language detection has something.
+                sample = " ".join(str(x) for x in [
+                    src.get("title"), props.get("jobtitle"),
+                    props.get("keywords"), props.get("searchtags"),
+                ] if x)
+                jobs.append({
+                    "id": f"navno:{uuid}",
+                    "source": "NAV (NO)",
+                    "title": src.get("title", ""),
+                    "company": (src.get("employer") or {}).get("name")
+                               or src.get("businessName", ""),
+                    "location": ", ".join(
+                        x for x in [(loc.get("city") or "").title(), "Norway"] if x),
+                    "country": "NO",
+                    "url": f"https://arbeidsplassen.nav.no/stillinger/stilling/{uuid}",
+                    "posted": src.get("published", ""),
+                    "description": sample,
+                })
+            time.sleep(0.3)
+    print(f"  [navno:NO] {len(jobs)} raw")
+    return jobs
+
+
 def fetch_all():
-    return fetch_adzuna() + fetch_jsearch() + fetch_jobtech_se()
+    return (fetch_adzuna() + fetch_jsearch()
+            + fetch_jobtech_se() + fetch_navno_no())
