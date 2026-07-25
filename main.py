@@ -13,6 +13,23 @@ import sources
 import digest
 
 
+def collapse_duplicates(jobs):
+    """Adzuna often lists the same role under several IDs. Keep one per
+    (title, company, country) so the digest isn't cluttered with repeats."""
+    seen, out = set(), []
+    for j in jobs:
+        key = (
+            (j.get("title") or "").strip().lower(),
+            (j.get("company") or "").strip().lower(),
+            j.get("country", ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(j)
+    return out
+
+
 def main():
     load_dotenv()
 
@@ -22,7 +39,8 @@ def main():
 
     print("2/4  Filtering by title + language…")
     matched = [j for j in raw if filters.keep(j)]
-    print(f"     {len(matched)} match Scrum/Coach + EN/DE")
+    matched = collapse_duplicates(matched)
+    print(f"     {len(matched)} match Scrum/Coach + EN/DE (near-duplicates collapsed)")
 
     print("3/4  Removing ones you've already seen…")
     conn = store.connect(config.DB_PATH)
