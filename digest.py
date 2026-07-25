@@ -11,9 +11,11 @@ from config import WEBPAGE_PATH
 def _card(job):
     company = job["company"] or "—"
     location = job["location"] or job["country"]
+    lang = (job.get("language") or "").upper()
+    badge = f'<span class="lang lang-{lang.lower()}">{lang}</span>' if lang else ""
     return f"""
     <div class="card">
-      <a class="title" href="{job['url']}" target="_blank" rel="noopener">{job['title']}</a>
+      <div class="title-row">{badge}<a class="title" href="{job['url']}" target="_blank" rel="noopener">{job['title']}</a></div>
       <div class="meta">{company} · {location} · <span class="src">{job['source']}</span></div>
       <a class="apply" href="{job['url']}" target="_blank" rel="noopener">Open &amp; apply →</a>
     </div>"""
@@ -39,6 +41,11 @@ def render_html(jobs):
   .meta {{ color: #555; font-size: .9rem; margin: .3rem 0 .6rem; }}
   .src {{ color: #999; }}
   .apply {{ font-size: .9rem; text-decoration: none; color: #0366d6; }}
+  .title-row {{ display: flex; align-items: baseline; gap: .5rem; }}
+  .lang {{ font-size: .7rem; font-weight: 700; padding: .1rem .4rem; border-radius: 5px;
+           letter-spacing: .03em; flex: none; }}
+  .lang-en {{ background: #d8f5df; color: #0a6b2b; }}
+  .lang-de {{ background: #ffe9c7; color: #8a5a00; }}
   .empty {{ color: #888; }}
   @media (prefers-color-scheme: dark) {{
     body {{ background: #141414; color: #eee; }}

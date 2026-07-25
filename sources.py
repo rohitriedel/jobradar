@@ -4,6 +4,7 @@
 """
 
 import os
+import time
 import httpx
 
 from config import (
@@ -15,6 +16,28 @@ from config import (
 )
 
 TIMEOUT = httpx.Timeout(30.0)
+
+
+def _get_with_retry(client, url, params, label, tries=3):
+    """GET with retry+backoff for transient throttling (503/429)."""
+    for attempt in range(1, tries + 1):
+        try:
+            r = client.get(url, params=params)
+            if r.status_code in (429, 503) and attempt < tries:
+                wait = 2 * attempt
+                print(f"  [{label}] {r.status_code}, retrying in {wait}s…")
+                time.sleep(wait)
+                continue
+            r.raise_for_status()
+            return r
+        except httpx.HTTPStatusError:
+            raise
+        except Exception as e:
+            if attempt < tries:
+                time.sleep(2 * attempt)
+                continue
+            raise e
+    return None
 
 
 # --------------------------------------------------------------------------- #
@@ -40,12 +63,12 @@ def fetch_adzuna():
                 "content-type": "application/json",
             }
             try:
-                r = client.get(url, params=params)
-                r.raise_for_status()
+                r = _get_with_retry(client, url, params, f"adzuna:{country}")
                 results = r.json().get("results", [])
             except Exception as e:
                 print(f"  [adzuna:{country}] error: {e}")
                 continue
+            time.sleep(0.5)  # be polite between countries
             for item in results:
                 jobs.append({
                     "id": f"adzuna:{item.get('id')}",
@@ -87,12 +110,14 @@ def fetch_jsearch():
                 "date_posted": "week",
             }
             try:
-                r = client.get("https://jsearch.p.rapidapi.com/search", params=params)
-                r.raise_for_status()
+                r = _get_with_retry(
+                    client, "https://jsearch.p.rapidapi.com/search", params,
+                    f"jsearch:{country}")
                 data = r.json().get("data", []) or []
             except Exception as e:
                 print(f"  [jsearch:{country}] error: {e}")
                 continue
+            time.sleep(0.5)
             for item in data:
                 jobs.append({
                     "id": f"jsearch:{item.get('job_id')}",

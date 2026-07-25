@@ -37,10 +37,10 @@ def main():
     raw = sources.fetch_all()
     print(f"     {len(raw)} raw postings")
 
-    print("2/4  Filtering by title + language…")
-    matched = [j for j in raw if filters.keep(j)]
-    matched = collapse_duplicates(matched)
-    print(f"     {len(matched)} match Scrum/Coach + EN/DE (near-duplicates collapsed)")
+    print("2/4  Filtering by title + language (English first)…")
+    matched = collapse_duplicates(filters.annotate_and_keep(raw))
+    n_en = sum(1 for j in matched if j["language"] == "en")
+    print(f"     {len(matched)} match — {n_en} English, {len(matched) - n_en} German")
 
     print("3/4  Removing ones you've already seen…")
     conn = store.connect(config.DB_PATH)

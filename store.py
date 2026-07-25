@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     url        TEXT,
     posted     TEXT,
     description TEXT,
+    language   TEXT,
     first_seen TEXT
 );
 """
@@ -38,11 +39,12 @@ def filter_new(conn, jobs):
             continue
         cur.execute(
             """INSERT INTO jobs
-               (id, source, title, company, location, country, url, posted, description, first_seen)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+               (id, source, title, company, location, country, url, posted, description, language, first_seen)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 j["id"], j["source"], j["title"], j["company"], j["location"],
-                j["country"], j["url"], j["posted"], j["description"], now,
+                j["country"], j["url"], j["posted"], j["description"],
+                j.get("language", ""), now,
             ),
         )
         new.append(j)
