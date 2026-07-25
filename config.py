@@ -65,8 +65,13 @@ ADZUNA_COUNTRIES = ["gb", "de", "at", "ch", "nl", "be", "fr", "it", "es", "pl"]
 ADZUNA_RESULTS_PER_PAGE = 50
 ADZUNA_MAX_PAGES = 3  # depth per country, so we don't miss jobs
 
-# JSearch: only these return data on the free tier (se/no/ie/gb come back empty).
-JSEARCH_COUNTRIES = ["de", "dk", "nl"]
+# JSearch = the Google-for-Jobs feed (catches LinkedIn/Glassdoor/Indeed/StepStone
+# postings). Tested 2026-07-26: these 6 return data (gb/ie/se/pl/be come back empty
+# on the free tier; se/no are covered by the gov APIs anyway).
+# BUDGET: free tier is a hard 200 requests/month. 6 countries × ONCE daily = 180/mo,
+# which fits. So JSearch runs only on the MORNING cloud sweep (see sources.py gate);
+# Adzuna/EURES/gov APIs are free and still run twice daily.
+JSEARCH_COUNTRIES = ["de", "at", "ch", "nl", "fr", "es"]
 JSEARCH_PAGES = 1
 
 # EURES — the EU Commission's pan-European job portal (open, no key). This is

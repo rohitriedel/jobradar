@@ -100,6 +100,15 @@ def fetch_jsearch():
         print("  [jsearch] no key set — skipping")
         return []
 
+    # Budget guard: the free tier is a hard 200 requests/month. To stay under it
+    # with 6 countries, JSearch runs at most ONCE a day. In the cloud there are
+    # two sweeps (06:00 & 16:00 UTC) — skip the afternoon one. Local/manual runs
+    # (no GITHUB_ACTIONS) always run so on-demand sweeps stay complete.
+    from datetime import datetime, timezone
+    if os.getenv("GITHUB_ACTIONS") and datetime.now(timezone.utc).hour >= 12:
+        print("  [jsearch] afternoon cloud sweep — skipping to conserve monthly quota")
+        return []
+
     headers = {
         "X-RapidAPI-Key": key,
         "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
