@@ -69,6 +69,13 @@ ADZUNA_MAX_PAGES = 3  # depth per country, so we don't miss jobs
 JSEARCH_COUNTRIES = ["de", "dk", "nl"]
 JSEARCH_PAGES = 1
 
+# EURES — the EU Commission's pan-European job portal (open, no key). This is
+# the wide net: covers every EU country, incl. the ones Adzuna/JSearch miss
+# (Ireland, Finland, Portugal, Greece, Eastern EU…). BEST_MATCH ranks relevant
+# roles first; the title filter trims the tail.
+EURES_MAX_PAGES = 2
+EURES_RESULTS_PER_PAGE = 50
+
 # Where the SQLite "already seen" database and the web page get written.
 DB_PATH = "jobradar.db"
 WEBPAGE_PATH = "index.html"

@@ -237,6 +237,67 @@ def fetch_navno_no():
     return jobs
 
 
+# --------------------------------------------------------------------------- #
+# EURES — EU Commission pan-European job portal (open, no key). Wide EU net.
+# --------------------------------------------------------------------------- #
+def fetch_eures():
+    from urllib.parse import quote
+    from config import GOV_SEARCH_TERMS, EURES_MAX_PAGES, EURES_RESULTS_PER_PAGE
+    url = ("https://europa.eu/eures/api/jv-searchengine/public/jv-search/search")
+    jobs, seen = [], set()
+    with httpx.Client(timeout=httpx.Timeout(45.0),
+                      headers={"accept": "application/json"}) as client:
+        for term in GOV_SEARCH_TERMS:
+            for page in range(1, EURES_MAX_PAGES + 1):
+                body = {
+                    "resultsPerPage": EURES_RESULTS_PER_PAGE, "page": page,
+                    "sortSearch": "BEST_MATCH",  # relevant roles first
+                    "keywords": [{"keyword": term, "specificSearchCode": "TITLE"}],
+                    "publicationPeriod": "LAST_WEEK",
+                    "occupationUris": [], "skillUris": [], "requiredExperienceCodes": [],
+                    "positionScheduleCodes": [], "sectorCodes": [],
+                    "educationAndQualificationLevelCodes": [], "positionOfferingCodes": [],
+                    "locationCodes": [], "euresFlagCodes": [], "otherBenefitsCodes": [],
+                    "requiredLanguages": [], "minNumberPost": None,
+                    "sessionId": "jobradar", "userPreferredLanguage": None,
+                    "requestLanguage": "en",
+                }
+                try:
+                    r = client.post(url, json=body)
+                    r.raise_for_status()
+                    jvs = r.json().get("jvs", []) or []
+                except Exception as e:
+                    print(f"  [eures:{term}:{page}] error: {e}")
+                    break
+                for jv in jvs:
+                    jid = jv.get("id")
+                    if not jid or jid in seen:
+                        continue
+                    seen.add(jid)
+                    country = next(iter((jv.get("locationMap") or {}).keys()), "")
+                    posted = ""
+                    ms = jv.get("lastModificationDate")
+                    if isinstance(ms, (int, float)):
+                        from datetime import datetime, timezone
+                        posted = datetime.fromtimestamp(ms / 1000, timezone.utc).isoformat()
+                    jobs.append({
+                        "id": f"eures:{jid}",
+                        "source": "EURES (EU)",
+                        "title": jv.get("title", ""),
+                        "company": (jv.get("employer") or {}).get("name", ""),
+                        "location": country,
+                        "country": country.upper(),
+                        "url": f"https://europa.eu/eures/portal/jv-se/jv-details/{quote(jid, safe='')}?lang=en",
+                        "posted": posted,
+                        "description": jv.get("description", ""),
+                    })
+                if len(jvs) < EURES_RESULTS_PER_PAGE:
+                    break
+                time.sleep(0.4)
+    print(f"  [eures:EU] {len(jobs)} raw")
+    return jobs
+
+
 def fetch_all():
-    return (fetch_adzuna() + fetch_jsearch()
+    return (fetch_adzuna() + fetch_jsearch() + fetch_eures()
             + fetch_jobtech_se() + fetch_navno_no())
