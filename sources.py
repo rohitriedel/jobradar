@@ -308,5 +308,6 @@ def fetch_eures():
 
 
 def fetch_all():
+    from watch import fetch_watched
     return (fetch_adzuna() + fetch_jsearch() + fetch_eures()
-            + fetch_jobtech_se() + fetch_navno_no())
+            + fetch_jobtech_se() + fetch_navno_no() + fetch_watched())

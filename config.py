@@ -81,6 +81,35 @@ JSEARCH_PAGES = 1
 EURES_MAX_PAGES = 2
 EURES_RESULTS_PER_PAGE = 50
 
+# ---------------------------------------------------------------------------
+# WATCHED COMPANIES — polled DIRECTLY from their careers portal (open ATS APIs,
+# no key). Straight from the source, so fresher/more complete than aggregators.
+# Format: (ats, slug, "Display Name").  ats ∈ greenhouse|lever|ashby|smartrecruiters.
+# All slugs below were verified working 2026-07-26. Add a company = add a line.
+# To find a slug: check the careers-page URL, e.g. boards.greenhouse.io/<slug>,
+# jobs.lever.co/<slug>, jobs.ashbyhq.com/<slug>, jobs.smartrecruiters.com/<Slug>.
+# ---------------------------------------------------------------------------
+WATCHED_COMPANIES = [
+    ("greenhouse", "celonis", "Celonis"),
+    ("greenhouse", "getyourguide", "GetYourGuide"),
+    ("greenhouse", "n26", "N26"),
+    ("greenhouse", "hellofresh", "HelloFresh"),
+    ("greenhouse", "trivago", "trivago"),
+    ("greenhouse", "contentful", "Contentful"),
+    ("greenhouse", "gitlab", "GitLab"),
+    ("greenhouse", "thoughtworks", "Thoughtworks"),
+    ("greenhouse", "doctolib", "Doctolib"),
+    ("greenhouse", "typeform", "Typeform"),
+    ("greenhouse", "sumup", "SumUp"),
+    ("greenhouse", "raisin", "Raisin"),
+    ("greenhouse", "solarisbank", "Solaris"),
+    ("greenhouse", "mirakl", "Mirakl"),
+    ("lever", "spotify", "Spotify"),
+    ("ashby", "pennylane", "Pennylane"),
+    ("smartrecruiters", "Continental", "Continental"),
+    ("smartrecruiters", "Visa", "Visa"),
+]
+
 # Where the SQLite "already seen" database and the web page get written.
 DB_PATH = "jobradar.db"
 WEBPAGE_PATH = "index.html"
