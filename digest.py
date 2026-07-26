@@ -49,12 +49,15 @@ def _card(job):
     </div>"""
 
 
-def _pill_group(name, label, options):
-    """options = list of (value, text). 'all' pill added first."""
-    pills = [f'<button class="pill active" data-group="{name}" data-value="all">All</button>']
+def _pill_group(name, label, options, active="all"):
+    """options = list of (value, text). 'all' pill added first. `active` = which
+    value starts selected (default 'all')."""
+    def cls(v):
+        return "pill active" if v == active else "pill"
+    pills = [f'<button class="{cls("all")}" data-group="{name}" data-value="all">All</button>']
     for value, text in options:
         pills.append(
-            f'<button class="pill" data-group="{name}" data-value="{_esc(value)}">{_esc(text)}</button>')
+            f'<button class="{cls(value)}" data-group="{name}" data-value="{_esc(value)}">{_esc(text)}</button>')
     return f'<div class="fgroup"><span class="flabel">{label}</span>{"".join(pills)}</div>'
 
 
@@ -68,7 +71,7 @@ def render_page(jobs):
              if any((j.get("work_mode") or "unknown") == m for j in jobs)]
 
     filters_html = "".join([
-        _pill_group("lang", "Language", [("en", "English"), ("de", "German")]),
+        _pill_group("lang", "Language", [("en", "English"), ("de", "German")], active="en"),
         _pill_group("mode", "Work mode", [(m, MODE_LABEL[m]) for m in modes]),
         _pill_group("cat", "Designation", [(c, c) for c in cats]),
         _pill_group("country", "Country", [(c, c) for c in countries]),
@@ -140,7 +143,7 @@ def render_page(jobs):
 {cards}
 </div>
 <script>
-  const state = {{lang:'all', mode:'all', cat:'all', country:'all', q:''}};
+  const state = {{lang:'en', mode:'all', cat:'all', country:'all', q:''}};
   const cards = Array.from(document.querySelectorAll('.card'));
   const countEl = document.getElementById('count');
 
